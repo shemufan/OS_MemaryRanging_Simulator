@@ -1,5 +1,6 @@
 // Simulator.h
 #pragma once
+#include <iostream>
 #include <vector>
 
 #include "MemoryManager.h"
@@ -11,12 +12,14 @@ class Simulator {
   PageTable pageTable;
   MemoryManager memoryManager;
   ReplacementAlgorithm* algorithm;
+  std::ostream& out;
 
   int pageFaultCount;
   int currentTime;
 
  public:
-  Simulator(ReplacementAlgorithm* Algorithm);
+  Simulator(ReplacementAlgorithm* Algorithm,
+            std::ostream& os = std::cout);
 
   void run(const std::vector<int>& instructions);
   void accessInstruction(int instructionNo);

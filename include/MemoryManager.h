@@ -1,5 +1,6 @@
 // MemoryManager.h
 #pragma once
+#include <iostream>
 #include <vector>
 
 #include "Config.h"
@@ -18,5 +19,5 @@ class MemoryManager {
   int findBlockByPage(int pageNo) const;
   void removePageFromBlock(int blockNo);
 
-  void printMemoryState() const;
+  void printMemoryState(std::ostream& os = std::cout) const;
 };
