@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
+#include <memory>
 
 #include "FIFOReplacement.h"
 #include "InstructionGenerator.h"
@@ -19,21 +20,19 @@ int main() {
   int choice;
   std::cin >> choice;
 
-  ReplacementAlgorithm* algorithm = nullptr;
+  std::unique_ptr<ReplacementAlgorithm> algorithm;
 
   if (choice == 1) {
-    algorithm = new FIFOReplacement();
+    algorithm = std::make_unique<FIFOReplacement>();
   } else {
-    algorithm = new LRUReplacement();
+    algorithm = std::make_unique<LRUReplacement>();
   }
 
   InstructionGenerator generator;
   std::vector<int> instructions = generator.generate();
 
-  Simulator simulator(algorithm);
+  Simulator simulator(algorithm.get());
   simulator.run(instructions);
-
-  delete algorithm;
 
   return 0;
 }

@@ -4,7 +4,7 @@
 #include <iostream>
 
 MemoryManager::MemoryManager() {
-  for (int i = 0; i < MEMORT_BLOCK_COUNT; i++) {
+  for (int i = 0; i < MEMORY_BLOCK_COUNT; i++) {
     MemoryBlock m(i);
     blocks.push_back(m);
   }

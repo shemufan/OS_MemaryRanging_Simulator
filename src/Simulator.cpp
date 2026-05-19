@@ -29,9 +29,10 @@ void Simulator::accessInstruction(int instructionNo) {
   if (pageTable.isInMemory(pageNo)) {
     int blockNo = pageTable.getBlockNo(pageNo);
     int physicalAddress = blockNo * PAGE_SIZE + offset;
-
+    std::cout << "命中！" << "指令在物理块：" << blockNo << "物理地址为："
+              << physicalAddress << std::endl;
     pageTable.updateVisitTime(pageNo, currentTime);
-    algorithm->onPageLoaded(pageNo);
+    algorithm->onPageVisited(pageNo);
   } else {
     pageFaultCount++;
 
@@ -48,16 +49,16 @@ void Simulator::accessInstruction(int instructionNo) {
 
     } else {
       int victimPage = algorithm->selectVictimPage(pageTable, memoryManager);
-      int victimBolck = pageTable.getBlockNo(victimPage);
+      int victimBlock = pageTable.getBlockNo(victimPage);
 
       pageTable.removePage(victimPage);
 
-      memoryManager.loadPageToBlock(pageNo, victimBolck);
-      pageTable.loadPage(pageNo, victimBolck, currentTime);
+      memoryManager.loadPageToBlock(pageNo, victimBlock);
+      pageTable.loadPage(pageNo, victimBlock, currentTime);
       algorithm->onPageLoaded(pageNo);
 
       std::cout << "淘汰页面：" << victimPage << ",调入页面：" << pageNo
-                << ",物理块：" << victimBolck << std ::endl;
+                << ",物理块：" << victimBlock << std ::endl;
     }
 
     int blockNo = pageTable.getBlockNo(pageNo);

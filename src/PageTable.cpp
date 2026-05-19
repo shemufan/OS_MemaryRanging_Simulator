@@ -6,7 +6,7 @@
 PageTable::PageTable() {
   for (int i = 0; i < PAGE_COUNT; i++) {
     PageTableEntry v(i);
-    entries.push_back(i);
+    entries.push_back(v);
   }
 }
 
