@@ -1,0 +1,5 @@
+*.exe
+build/
+*.o
+*.out
+cmake-build-*/
