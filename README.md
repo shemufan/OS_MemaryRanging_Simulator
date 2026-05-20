@@ -164,22 +164,34 @@ OS_MemaryRanging_Simulator/
 │   ├── Config.h
 │   ├── FIFOReplacement.h
 │   ├── InstructionGenerator.h
+│   ├── JsonExporter.h
 │   ├── LRUReplacement.h
 │   ├── MemoryBlock.h
 │   ├── MemoryManager.h
 │   ├── PageTable.h
 │   ├── PageTableEntry.h
 │   ├── ReplacementAlgorithm.h
+│   ├── SimulationStep.h
 │   └── Simulator.h
 │
-└── src/
-    ├── FIFOReplacement.cpp
-    ├── InstructionGenerator.cpp
-    ├── LRUReplacement.cpp
-    ├── MemoryManager.cpp
-    ├── PageTable.cpp
-    ├── Simulator.cpp
-    └── main.cpp
+├── src/
+│   ├── FIFOReplacement.cpp
+│   ├── InstructionGenerator.cpp
+│   ├── JsonExporter.cpp
+│   ├── LRUReplacement.cpp
+│   ├── MemoryManager.cpp
+│   ├── PageTable.cpp
+│   ├── Simulator.cpp
+│   └── main.cpp
+│
+├── frontend/
+│   ├── index.html
+│   ├── style.css
+│   └── app.js
+│
+└── output/
+    ├── simulation_result.json
+    └── simulation_data.js
 ```
 
 ### 3. 编译方法
@@ -487,7 +499,137 @@ pageFaultRate = static_cast<double>(pageFaultCount) / totalInstructions;
 
 ---
 
-## 五、项目亮点
+## 五、前端可视化
+
+v2.0 新增了基于 HTML + CSS + JavaScript 的静态前端可视化页面，可直接在浏览器中查看模拟过程。
+
+### 5.1 前后端数据连接
+
+C++ 模拟器在运行结束后会自动生成两份数据文件：
+
+| 文件 | 格式 | 用途 |
+|---|---|---|
+| `output/simulation_result.json` | 纯 JSON | 通用数据交换，供 fetch 读取 |
+| `output/simulation_data.js` | JavaScript | 将 JSON 包裹为 `var SIMULATION_DATA = {...};`，供 `<script>` 标签直接引入 |
+
+前端加载数据的优先级：
+
+1. 检查 `window.SIMULATION_DATA` 是否存在（通过 `<script>` 标签引入）
+2. 如果不存在，则使用 `fetch('../output/simulation_result.json')` 异步加载
+
+这种双通道设计使得前端**既可以直接双击 HTML 打开（无需服务器），也可以通过 HTTP 服务器访问**。
+
+### 5.2 SimulationStep 数据结构
+
+C++ 端新增 `SimulationStep` 结构体，记录每一步模拟的完整状态：
+
+```cpp
+struct SimulationStep {
+  int stepNo;                  // 当前步骤编号
+  int instructionNo;           // 访问的指令号
+  int pageNo;                  // 页号
+  int offset;                  // 页内偏移
+  bool pageFault;              // 是否缺页
+  int blockNo;                 // 所在物理块号
+  int physicalAddress;         // 物理地址
+  int loadedPage;              // 调入页面，-1 表示无
+  int victimPage;              // 淘汰页面，-1 表示无
+  std::vector<int> memoryState;// 4 个物理块存放的页面，-1 表示空闲
+  int pageFaultCount;          // 累计缺页次数
+  double pageFaultRate;        // 当前缺页率
+};
+```
+
+Simulator 在每次指令访问后自动记录一个 `SimulationStep`，最终通过 `JsonExporter` 导出。
+
+### 5.3 JSON 数据格式
+
+导出的 JSON 结构如下：
+
+```json
+{
+  "algorithm": "LRU",
+  "totalInstructions": 320,
+  "pageSize": 10,
+  "pageCount": 32,
+  "memoryBlockCount": 4,
+  "steps": [
+    {
+      "stepNo": 1,
+      "instructionNo": 126,
+      "pageNo": 12,
+      "offset": 6,
+      "pageFault": true,
+      "blockNo": 0,
+      "physicalAddress": 6,
+      "loadedPage": 12,
+      "victimPage": -1,
+      "memoryState": [12, -1, -1, -1],
+      "pageFaultCount": 1,
+      "pageFaultRate": 0.003125
+    }
+  ]
+}
+```
+
+### 5.4 前端功能
+
+| 功能 | 说明 |
+|---|---|
+| 算法标识 | 右上角显示当前使用的算法（FIFO / LRU） |
+| 步骤进度条 | 显示当前步骤 / 总步骤，蓝色渐变填充 |
+| 指令信息 | 显示指令号、页号、页内偏移、物理地址 |
+| 访问结果 | 命中显示绿色 ✔，缺页显示红色 ✘ |
+| 调入/淘汰 | 显示 loadedPage 和 victimPage，-1 显示为"无" |
+| 物理内存块 | 4 个卡片显示当前各块存放的页面，空闲显示"空闲"，当前访问块橙色高亮 |
+| 统计信息 | 实时显示累计缺页次数和缺页率 |
+| 播放控制 | 上一步 / 下一步 / 自动播放（600ms）/ 暂停 / 重置 |
+| 键盘快捷键 | ← → 切换步骤，空格 播放/暂停，R 重置 |
+| 响应式布局 | 2×2 网格布局，移动端自动切换为单列 |
+
+### 5.5 前端使用方法
+
+**方式一（推荐）：直接打开**
+
+先运行 C++ 模拟器生成数据文件，然后双击打开：
+
+```
+frontend/index.html
+```
+
+浏览器通过 `<script>` 标签直接加载 `output/simulation_data.js`，无需任何服务器。
+
+**方式二：HTTP 服务器**
+
+在项目根目录启动 HTTP 服务器：
+
+```bash
+cd os_memorypaging_simulator
+python3 -m http.server 8000
+```
+
+浏览器访问：
+
+```
+http://localhost:8000/frontend/index.html
+```
+
+此时前端优先读取 `<script>` 引入的全局变量；若跨网络时 JS 文件不可用，自动回退到 `fetch` 方式加载 JSON。
+
+### 5.6 前端架构
+
+```text
+frontend/
+├── index.html    # 页面结构，2×2 网格 + 控制栏
+├── style.css     # 样式：命中绿/缺页红/活跃块橙，响应式布局
+└── app.js        # 逻辑：数据加载、步骤渲染、播放控制、键盘事件
+```
+
+前端为零依赖纯静态页面，无需 npm、框架或构建工具，在任何现代浏览器中均可运行。
+
+---
+
+## 六、项目亮点
 
 ### 1. 模块化设计清晰
 
@@ -498,6 +640,8 @@ pageFaultRate = static_cast<double>(pageFaultCount) / totalInstructions;
 - 物理内存管理模块
 - 页面置换算法模块
 - 模拟控制模块
+- JSON 导出模块
+- 前端可视化模块
 
 每个模块职责清晰，便于理解、维护和扩展。
 
@@ -533,26 +677,44 @@ pageFaultRate = static_cast<double>(pageFaultCount) / totalInstructions;
 
 能够较好地体现请求分页存储管理的基本思想。
 
-### 4. 实现结果保存功能
+### 4. 多格式结果输出
 
-每次运行结果都可以保存到文件中，具体在：
+每次模拟运行自动生成以下文件：
 
-```text
-result.txt
+| 文件 | 内容 |
+|---|---|
+| `result.txt` | 完整的控制台输出（每次访问详情 + 最终统计） |
+| `output/simulation_result.json` | 结构化 JSON 数据，包含每一步的完整模拟状态 |
+| `output/simulation_data.js` | 等同于 JSON 包裹为 JS 全局变量，供前端直接引入 |
+
+JSON 输出示例：
+```
+{
+  "algorithm": "FIFO",
+  "totalInstructions": 320,
+  "pageSize": 10,
+  "pageCount": 32,
+  "memoryBlockCount": 4,
+  "steps": [
+    {
+      "stepNo": 1,
+      "instructionNo": 1,
+      "pageNo": 0,
+      "offset": 1,
+      "pageFault": true,
+      "blockNo": 0,
+      "physicalAddress": 1,
+      "loadedPage": 0,
+      "victimPage": -1,
+      "memoryState": [0, -1, -1, -1],
+      "pageFaultCount": 1,
+      "pageFaultRate": 0.003125
+    },
+}
 ```
 
-保存内容包括：
-
-- 每次访问的指令号
-- 页号
-- 页内偏移
-- 是否缺页
-- 淘汰页面
-- 当前内存状态
-- 最终缺页率
-
+txt 输出实例：
 ```
-------------------------
 访问指令：162 页号：16 页内偏移：2
 命中！物理块：2 物理地址为：22
 当前内存块状态: [22, 30, 16, 9]
@@ -565,29 +727,35 @@ result.txt
 ==================================
 ```
 
-便于后续撰写实验报告和进行数据分析。
+前端页面展示：
+
+![前端页面展示](./assets/frontend-demo.png)
+
+便于撰写实验报告和进行数据分析。
 
 ### 5. 支持 FIFO 与 LRU 对比
 
 项目同时实现 FIFO 和 LRU 两种页面置换算法，用户可以在程序运行时选择不同算法进行模拟，便于观察不同算法对缺页次数和缺页率的影响。
 
+### 6. 前端可视化交互
+
+新增纯静态前端可视化页面，支持分步查看、自动播放、暂停/重置等交互操作。命中/缺页分别以绿色/红色实时标记，当前访问的物理块橙色高亮。页面零依赖，可直接双击打开，无需服务器或构建工具。键盘快捷键支持（← → 空格 R），适合课程设计展示。
+
 ---
 
-## 六、项目改进方向
+## 七、项目改进方向
 
 虽然本项目已经完成了请求分页存储管理的基本模拟功能，但仍然可以从以下几个方面继续改进。
 
-### 1. 增加图形化界面
+### 1. 增强前端可视化
 
-目前程序主要通过命令行输出模拟过程。后续可以设计图形化界面，用表格或动画展示：
+v2.0 已实现基础前端可视化。后续可进一步增强：
 
-- 指令访问过程
-- 页表状态变化
-- 物理内存块变化
-- 页面置换过程
-- 缺页率统计结果
-
-这样可以使模拟过程更加直观。
+- 页表完整状态展示（32 页 × 每页状态）
+- 缺页率实时折线图
+- FIFO 与 LRU 双栏对比模式
+- 页面置换动画过渡效果
+- 支持运行时切换算法并重新模拟
 
 ### 2. 增加更多页面置换算法
 
@@ -629,11 +797,11 @@ LRU     86          26.875%
 
 ---
 
-## 七、项目总结
+## 八、项目总结
 
-本项目使用 C++ 实现了一个请求分页存储管理模拟系统，完整模拟了作业执行过程中页面访问、页表查询、缺页中断、页面调入、页面置换和缺页率统计等过程。
+本项目使用 C++ 实现了一个请求分页存储管理模拟系统，完整模拟了作业执行过程中页面访问、页表查询、缺页中断、页面调入、页面置换和缺页率统计等过程。同时新增了纯静态前端可视化页面，支持在浏览器中分步查看和自动播放整个模拟过程。
 
-通过本项目，可以更加直观地理解请求分页系统的工作机制，掌握页表在地址转换中的作用，理解物理内存块有限时页面置换算法的重要性。同时，通过 FIFO 和 LRU 两种算法的实现与对比，也可以进一步理解不同页面置换策略对系统性能的影响。
+通过本项目，可以更加直观地理解请求分页系统的工作机制，掌握页表在地址转换中的作用，理解物理内存块有限时页面置换算法的重要性。同时，通过 FIFO 和 LRU 两种算法的实现与对比，也可以进一步理解不同页面置换策略对系统性能的影响。前端可视化页面使模拟过程更加生动，适合课程设计展示和实验报告演示。
 
-整体来看，本项目结构清晰、功能完整、扩展性较好，能够满足操作系统课程中请求分页存储管理模拟实验的基本要求。后续可以继续从图形化界面、更多算法支持、自定义参数和结果保存等方向进行完善。
+整体来看，本项目结构清晰、功能完整、扩展性较好，能够满足操作系统课程中请求分页存储管理模拟实验的基本要求。
 

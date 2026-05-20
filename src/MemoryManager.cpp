@@ -38,6 +38,14 @@ void MemoryManager::removePageFromBlock(int blockNo) {
   blocks[blockNo].pageNo = -1;
 }
 
+std::vector<int> MemoryManager::getMemoryState() const {
+  std::vector<int> state;
+  for (const auto& block : blocks) {
+    state.push_back(block.pageNo);
+  }
+  return state;
+}
+
 void MemoryManager::printMemoryState(std::ostream& os) const {
   os << "当前内存块状态: [";
   for (int i = 0; i < blocks.size(); i++) {

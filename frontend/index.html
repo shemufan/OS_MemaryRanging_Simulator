@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>请求分页存储管理模拟</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>请求分页存储管理模拟系统</h1>
+      <div class="algorithm-badge" id="algorithmBadge">-</div>
+    </header>
+
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+      <span class="progress-text" id="progressText">0 / 0</span>
+    </div>
+
+    <div class="main-grid">
+      <div class="card info-card">
+        <h2>当前指令</h2>
+        <div class="info-row">
+          <span class="label">指令号</span>
+          <span class="value" id="instructionNo">-</span>
+        </div>
+        <div class="info-row">
+          <span class="label">页号</span>
+          <span class="value" id="pageNo">-</span>
+        </div>
+        <div class="info-row">
+          <span class="label">页内偏移</span>
+          <span class="value" id="offset">-</span>
+        </div>
+        <div class="info-row">
+          <span class="label">物理地址</span>
+          <span class="value" id="physicalAddress">-</span>
+        </div>
+      </div>
+
+      <div class="card result-card" id="resultCard">
+        <div class="result-icon" id="resultIcon">-</div>
+        <div class="result-text" id="resultText">等待加载数据</div>
+      </div>
+
+      <div class="card detail-card">
+        <h2>调入 / 淘汰</h2>
+        <div class="detail-row">
+          <span class="label">调入页面</span>
+          <span class="value" id="loadedPage">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">淘汰页面</span>
+          <span class="value" id="victimPage">-</span>
+        </div>
+      </div>
+
+      <div class="card memory-card">
+        <h2>物理内存块</h2>
+        <div class="memory-blocks" id="memoryBlocks">
+          <div class="memory-block" data-block="0">空闲</div>
+          <div class="memory-block" data-block="1">空闲</div>
+          <div class="memory-block" data-block="2">空闲</div>
+          <div class="memory-block" data-block="3">空闲</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card stats-card">
+      <h2>统计信息</h2>
+      <div class="stats-row">
+        <div class="stat-item">
+          <span class="stat-label">缺页次数</span>
+          <span class="stat-value" id="pageFaultCount">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">缺页率</span>
+          <span class="stat-value" id="pageFaultRate">0%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="btnReset" title="重置">⏮</button>
+      <button class="btn" id="btnPrev" title="上一步">◀</button>
+      <button class="btn btn-primary" id="btnPlay" title="自动播放">▶</button>
+      <button class="btn btn-primary" id="btnPause" title="暂停" style="display:none">⏸</button>
+      <button class="btn" id="btnNext" title="下一步">▶</button>
+      <span class="speed-hint">自动播放间隔 600ms</span>
+    </div>
+  </div>
+
+  <script src="../output/simulation_data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

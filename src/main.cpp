@@ -7,6 +7,7 @@
 
 #include "FIFOReplacement.h"
 #include "InstructionGenerator.h"
+#include "JsonExporter.h"
 #include "LRUReplacement.h"
 #include "Simulator.h"
 
@@ -56,6 +57,14 @@ int main() {
 
   Simulator simulator(algorithm.get(), tee);
   simulator.run(instructions);
+
+  JsonExporter exporter;
+  exporter.exportToFile("output/simulation_result.json",
+                        algorithm->getAlgorithmName(),
+                        simulator.getSteps());
+  exporter.exportToJsFile("output/simulation_data.js",
+                          algorithm->getAlgorithmName(),
+                          simulator.getSteps());
 
   return 0;
 }

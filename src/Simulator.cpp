@@ -23,15 +23,23 @@ void Simulator::accessInstruction(int instructionNo) {
   out << "访问指令：" << instructionNo << " 页号：" << pageNo
       << " 页内偏移：" << offset << std::endl;
 
+  bool pageFault = false;
+  int blockNo = 0;
+  int physicalAddress = 0;
+  int loadedPage = -1;
+  int victimPage = -1;
+
   if (pageTable.isInMemory(pageNo)) {
-    int blockNo = pageTable.getBlockNo(pageNo);
-    int physicalAddress = blockNo * PAGE_SIZE + offset;
+    blockNo = pageTable.getBlockNo(pageNo);
+    physicalAddress = blockNo * PAGE_SIZE + offset;
     out << "命中！" << "物理块：" << blockNo << " 物理地址为：" << physicalAddress
         << std::endl;
     pageTable.updateVisitTime(pageNo, currentTime);
     algorithm->onPageVisited(pageNo);
   } else {
+    pageFault = true;
     pageFaultCount++;
+    loadedPage = pageNo;
 
     out << "发生缺页！" << std::endl;
 
@@ -45,7 +53,7 @@ void Simulator::accessInstruction(int instructionNo) {
       out << "页面" << pageNo << "调入物理块" << freeBlock << std::endl;
 
     } else {
-      int victimPage = algorithm->selectVictimPage(pageTable, memoryManager);
+      victimPage = algorithm->selectVictimPage(pageTable, memoryManager);
       int victimBlock = pageTable.getBlockNo(victimPage);
 
       pageTable.removePage(victimPage);
@@ -58,14 +66,37 @@ void Simulator::accessInstruction(int instructionNo) {
           << ",物理块：" << victimBlock << std::endl;
     }
 
-    int blockNo = pageTable.getBlockNo(pageNo);
-    int physicalAddress = blockNo * PAGE_SIZE + offset;
+    blockNo = pageTable.getBlockNo(pageNo);
+    physicalAddress = blockNo * PAGE_SIZE + offset;
 
     out << "调页后物理地址：" << physicalAddress << std::endl;
   }
 
   memoryManager.printMemoryState(out);
   out << "------------------------" << std::endl;
+
+  double pageFaultRate =
+      static_cast<double>(pageFaultCount) / INSTRUCTION_COUNT;
+
+  SimulationStep step;
+  step.stepNo = currentTime;
+  step.instructionNo = instructionNo;
+  step.pageNo = pageNo;
+  step.offset = offset;
+  step.pageFault = pageFault;
+  step.blockNo = blockNo;
+  step.physicalAddress = physicalAddress;
+  step.loadedPage = loadedPage;
+  step.victimPage = victimPage;
+  step.memoryState = memoryManager.getMemoryState();
+  step.pageFaultCount = pageFaultCount;
+  step.pageFaultRate = pageFaultRate;
+
+  steps.push_back(step);
+}
+
+const std::vector<SimulationStep>& Simulator::getSteps() const {
+  return steps;
 }
 
 void Simulator::printStatistics(int totalInstructions) const {

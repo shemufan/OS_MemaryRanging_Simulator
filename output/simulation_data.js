@@ -1,4 +1,4 @@
-{
+var SIMULATION_DATA = {
   "algorithm": "FIFO",
   "totalInstructions": 320,
   "pageSize": 10,
@@ -4486,4 +4486,4 @@
       "pageFaultRate": 0.465625
     }
   ]
-}
+};

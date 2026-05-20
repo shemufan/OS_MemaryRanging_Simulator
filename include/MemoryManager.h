@@ -19,5 +19,7 @@ class MemoryManager {
   int findBlockByPage(int pageNo) const;
   void removePageFromBlock(int blockNo);
 
+  std::vector<int> getMemoryState() const;
+
   void printMemoryState(std::ostream& os = std::cout) const;
 };
